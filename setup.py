@@ -42,6 +42,6 @@ setup(
     name='appveyor-artifacts',
     py_modules=['appveyor_artifacts'],
     url='https://github.com/Robpol86/appveyor-artifacts',
-    version='0.0.2',
+    version='1.0.0',
     zip_safe=True,
 )
