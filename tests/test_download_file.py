@@ -10,7 +10,8 @@ from appveyor_artifacts import download_file, HandledError
 
 
 @pytest.mark.httpretty
-def test_success(capsys, tmpdir):
+@pytest.mark.parametrize('subdir', ['', 'dist'])
+def test_success(capsys, tmpdir, subdir):
     """No errors."""
     # Prepare requests module mocking.
     source_file = py.path.local(__file__).dirpath().join('..', 'appveyor_artifacts.py')
@@ -18,7 +19,10 @@ def test_success(capsys, tmpdir):
     httpretty.register_uri(httpretty.GET, url, body=iter(source_file.readlines()), streaming=True)
 
     # Run.
-    local_path = tmpdir.join('appveyor_artifacts.py')
+    if subdir:
+        local_path = tmpdir.join(subdir, 'appveyor_artifacts.py')
+    else:
+        local_path = tmpdir.join('appveyor_artifacts.py')
     download_file(str(local_path), url, source_file.size(), 1024)
 
     # Check.
@@ -48,23 +52,3 @@ def test_errors(tmpdir, caplog, file_exists):
     else:
         message = 'Expected {0} bytes but got {1} bytes instead.'.format(source_file.size() + 32, source_file.size())
         assert caplog.records()[-2].message == message
-
-
-@pytest.mark.httpretty
-def test_create_directory(capsys, tmpdir):
-    """Sub-directory should be created to store the target file..."""
-    # Prepare requests module mocking.
-    source_file = py.path.local(__file__).dirpath().join('..', 'appveyor_artifacts.py')
-    url = 'https://ci.appveyor.com/api/buildjobs/abc1def2ghi3jkl4/artifacts/appveyor_artifacts.py'
-    httpretty.register_uri(httpretty.GET, url, body=iter(source_file.readlines()), streaming=True)
-
-    # Run.
-    local_path = tmpdir.join('moo', 'appveyor_artifacts.py')
-    download_file(str(local_path), url, source_file.size(), 1024)
-
-    # Check.
-    assert local_path.size() == source_file.size()
-    assert local_path.computehash() == source_file.computehash()
-    stdout, stderr = capsys.readouterr()
-    assert not stdout
-    assert re.match(r'^ => appveyor_artifacts.py [\.]{15,79} [\d]{5,6} bytes\n$', stderr)
